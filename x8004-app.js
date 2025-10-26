@@ -177,6 +177,7 @@
           "function balanceOf(address) view returns (uint256)",
           "function approve(address,uint256) returns (bool)",
           "function allowance(address,address) view returns (uint256)",
+          "function transfer(address to, uint256 amount) returns (bool)",
         ],
         signer
       );
@@ -371,8 +372,10 @@
       let lastError = null;
       
       // First try the specific mint function with signature 0x1249c58b (no parameters)
-      console.log("Trying specific mint function (0x1249c58b)...");
+      // This is the direct call to the contract as requested
+      console.log("Trying specific mint function (0x1249c58b) on contract 0x20f4c2f4113360bec894825a070e24175ee4ecb8...");
       try {
+        // Direct call to the mint function with signature 0x1249c58b
         tx = await tokenContract.connect(signer).mint();
         purchaseSuccess = true;
         console.log("✅ Success with specific mint function (0x1249c58b)");
@@ -383,6 +386,7 @@
       
       // If that fails, try other common function names
       if (!purchaseSuccess) {
+        console.log("Trying alternative function names...");
         // Common function names for purchasing tokens with USDC
         const purchaseFunctions = [
           'purchase',
@@ -427,27 +431,8 @@
         }
       }
       
-      // If no specific function worked, try transferring USDC and then minting
-      if (!purchaseSuccess) {
-        console.log("Trying USDC transfer approach...");
-        try {
-          // Transfer USDC to contract
-          showMessage("Transferring USDC to contract...", "info");
-          const transferTx = await usdcContract.transfer(CONFIG.TOKEN_ADDRESS, amountIn);
-          await transferTx.wait();
-          console.log("USDC transferred to contract");
-          
-          // Then try to mint
-          showMessage("Minting tokens...", "info");
-          const mintTx = await tokenContract.connect(signer).mint();
-          tx = mintTx;
-          purchaseSuccess = true;
-          console.log("✅ Success with transfer-then-mint approach");
-        } catch (transferError) {
-          console.log("Transfer approach failed:", transferError.message);
-          lastError = transferError;
-        }
-      }
+      // Note: We don't try direct USDC transfer anymore since we're using the approve mechanism
+      // The token contract should handle the USDC transfer internally after we've approved it
       
       if (!purchaseSuccess) {
         const errorMessage = handleContractError(lastError || new Error("Could not find a working method to purchase tokens"), "Purchase");
@@ -550,6 +535,12 @@
       // Purchase tokens - user pays 1 USDC to get 8004 tokens
       try {
         showMessage("Please confirm purchase transaction in your wallet...", "info");
+        
+        // Log the exact contract and function being called
+        console.log(`CALLTYPE: Direct mint call`);
+        console.log(`CONTRACT: ${CONFIG.TOKEN_ADDRESS}`);
+        console.log(`FUNCTION: mint()`);
+        console.log(`SIGNATURE: 0x1249c58b`);
         
         // Use the dedicated purchase function
         const tx = await purchaseTokens();
