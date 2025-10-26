@@ -375,18 +375,62 @@
       // This is the direct call to the contract as requested
       console.log("Trying specific mint function (0x1249c58b) on contract 0x20f4c2f4113360bec894825a070e24175ee4ecb8...");
       try {
-        // Direct call to the mint function with signature 0x1249c58b
-        tx = await tokenContract.connect(signer).mint();
+        // Method 1: Direct function call using bracket notation
+        console.log("Method 1: Direct function call");
+        const contractWithSigner = tokenContract.connect(signer);
+        tx = await contractWithSigner['mint()']();
         purchaseSuccess = true;
-        console.log("✅ Success with specific mint function (0x1249c58b)");
-      } catch (mintError) {
-        console.log("Specific mint function failed:", mintError.message);
-        lastError = mintError;
+        console.log("✅ Success with Method 1");
+      } catch (mintError1) {
+        console.log("Method 1 failed:", mintError1.message);
+        lastError = mintError1;
+        
+        // Method 2: Using functions object
+        try {
+          console.log("Method 2: Using functions object");
+          tx = await tokenContract.connect(signer).functions['mint()']();
+          purchaseSuccess = true;
+          console.log("✅ Success with Method 2");
+        } catch (mintError2) {
+          console.log("Method 2 failed:", mintError2.message);
+          lastError = mintError2;
+          
+          // Method 3: Manual transaction with function signature
+          try {
+            console.log("Method 3: Manual transaction with function signature");
+            const txData = {
+              to: CONFIG.TOKEN_ADDRESS,
+              data: '0x1249c58b' // Function signature for mint()
+            };
+            tx = await signer.sendTransaction(txData);
+            purchaseSuccess = true;
+            console.log("✅ Success with Method 3");
+          } catch (mintError3) {
+            console.log("Method 3 failed:", mintError3.message);
+            lastError = mintError3;
+            
+            // Method 4: Using encodeFunctionData and sendTransaction
+            try {
+              console.log("Method 4: Using encodeFunctionData");
+              const data = tokenContract.interface.encodeFunctionData('mint');
+              const txData = {
+                to: CONFIG.TOKEN_ADDRESS,
+                data: data
+              };
+              tx = await signer.sendTransaction(txData);
+              purchaseSuccess = true;
+              console.log("✅ Success with Method 4");
+            } catch (mintError4) {
+              console.log("Method 4 failed:", mintError4.message);
+              lastError = mintError4;
+            }
+          }
+        }
       }
       
-      // If that fails, try other common function names
+      // If all direct methods fail, try other common function names
       if (!purchaseSuccess) {
-        console.log("Trying alternative function names...");
+        console.log("All direct methods failed. Trying alternative function names...");
         // Common function names for purchasing tokens with USDC
         const purchaseFunctions = [
           'purchase',
@@ -416,7 +460,8 @@
             for (const params of paramCombinations) {
               try {
                 console.log(`  Trying with params:`, params);
-                tx = await tokenContract.connect(signer)[funcName](...params);
+                // Use the explicit functions object
+                tx = await tokenContract.connect(signer).functions[funcName](...params);
                 purchaseSuccess = true;
                 console.log(`✅ Success with ${funcName} and params:`, params);
                 break;
