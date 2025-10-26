@@ -17,8 +17,8 @@
       function copyContract() {
         const address = "0x20f4c2f4113360bec894825a070e24175ee4ecb8";
         navigator.clipboard
-          .writeText(address)
-          .then(() => {
+          。writeText(address)
+          。then(() => {
             const btn = event.target;
             const originalText = btn.textContent;
             btn.textContent = "✓";
@@ -28,7 +28,7 @@
               btn.style.color = "";
             }, 2000);
           })
-          .catch((err) => {
+          。catch((err) => {
             console.error("Failed to copy:", err);
           });
       }
@@ -61,7 +61,7 @@
                 <div class="info-value" id="usdtBalance">-</div>
               </div>
               <div class="info-card">
-                <div class="info-label">BASE8004 Balance</div>
+                <div class="info-label">kaws8004 Balance</div>
                 <div class="info-value" id="tokenBalance">-</div>
               </div>
             </div>
@@ -75,7 +75,7 @@
                 </div>
                 <div class="info-row">
                   <span>Receive:</span>
-                  <span class="highlight-value">8004 BASE8004</span>
+                  <span class="highlight-value">8004 kaws8004</span>
                 </div>
 
               </div>
