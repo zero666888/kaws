@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>kaws8004</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <meta name="theme-color" content="#F0B90B" />
+    <link rel="stylesheet" href="x8004-styles.css" />
+    <script>
+      function copyContract() {
+        const address = "0x20f4c2f4113360bec894825a070e24175ee4ecb8";
+        navigator.clipboard
+          .writeText(address)
+          .then(() => {
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = "✓";
+            btn.style.color = "#00ff88";
+            setTimeout(() => {
+              btn.textContent = originalText;
+              btn.style.color = "";
+            }, 2000);
+          })
+          .catch((err) => {
+            console.error("Failed to copy:", err);
+          });
+      }
+    </script>
+  </head>
+  <body>
+    <!-- Wallet Connection Only -->
+    <div style="padding: 20px; text-align: right;">
+      <button id="connectButton" class="connect-btn">
+        <span class="btn-text">Connect Wallet</span>
+      </button>
+    </div>
+
+
+
+    <main class="main-content">
+      <div class="container">
+        <div class="trading-section">
+          <div class="trading-card">
+            <div id="message"></div>
+
+            <!-- Wallet Info -->
+            <div class="wallet-info-section">
+              <div class="info-card">
+                <div class="info-label">Wallet Address</div>
+                <div class="info-value" id="walletAddress">Not Connected</div>
+              </div>
+              <div class="info-card">
+                <div class="info-label">USDC Balance</div>
+                <div class="info-value" id="usdtBalance">-</div>
+              </div>
+              <div class="info-card">
+                <div class="info-label">BASE8004 Balance</div>
+                <div class="info-value" id="tokenBalance">-</div>
+              </div>
+            </div>
+
+            <!-- Mint Section -->
+            <div id="mintSection" style="display: none">
+              <div class="mint-info-box">
+                <div class="info-row">
+                  <span>Pay:</span>
+                  <span class="highlight-value">1 USDC</span>
+                </div>
+                <div class="info-row">
+                  <span>Receive:</span>
+                  <span class="highlight-value">8004 BASE8004</span>
+                </div>
+
+              </div>
+
+              <div class="action-buttons">
+                <button
+                  id="approveBtn"
+                  class="action-btn secondary-btn"
+                  onclick="approveUSDC()"
+                  disabled
+                >
+                  <span id="approveText">Step 1: Approve USDC</span>
+                </button>
+                <button
+                  id="mintBtn"
+                  class="action-btn primary-btn"
+                  onclick="mintTokens()"
+                  disabled
+                >
+                  <span id="mintText">Step 2: Mint </span>
+                </button>
+              </div>
+            </div>
+
+            <div class="trading-info">
+              <div class="info-item">
+                <span class="info-label">Contract:</span>
+                <span class="info-value">0x20f4c2f4113360bec894825a070e24175ee4ecb8</span>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label">Network:</span>
+                <span class="info-value">Base Mainnet</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script src="x8004-app.js"></script>
+  </body>
+</html>
