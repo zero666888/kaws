@@ -38,10 +38,16 @@
       elements.message.className = type;
       elements.message.classList.add("show");
 
-      if (type === "success" || type === "info") {
+      // Auto-hide success and info messages after delay
+      if (type === "success") {
         setTimeout(() => {
           elements.message.style.display = "none";
         }, 5000);
+      } else if (type === "info") {
+        // Keep info messages visible longer since they contain important process info
+        setTimeout(() => {
+          elements.message.style.display = "none";
+        }, 10000);
       }
     }
   }
@@ -64,6 +70,11 @@
 
   function shortAddress(addr) {
     return addr ? addr.slice(0, 6) + "..." + addr.slice(-4) : "Not Connected";
+  }
+
+  // Detect mobile device
+  function isMobile() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   }
 
   // Improved error handler
@@ -94,11 +105,21 @@
   async function connectWallet() {
     try {
       if (typeof window.ethereum === "undefined") {
-        showMessage("Please install MetaMask wallet", "error");
+        if (isMobile()) {
+          showMessage("Please use a wallet-enabled browser like MetaMask Mobile or Coinbase Wallet", "error");
+        } else {
+          showMessage("Please install MetaMask wallet to continue", "error");
+        }
         return;
       }
 
       showLoading("connectButton", "Connecting...");
+      
+      if (isMobile()) {
+        showMessage("Please confirm wallet connection in your mobile wallet app...", "info");
+      } else {
+        showMessage("Please confirm wallet connection in your wallet extension...", "info");
+      }
 
       // Request accounts
       let accounts;
@@ -106,6 +127,7 @@
         accounts = await window.ethereum.request({
           method: "eth_requestAccounts",
         });
+        showMessage("Wallet connected! Checking network...", "info");
       } catch (accountError) {
         console.error("Account request failed:", accountError);
         hideLoading("connectButton", "Connect Wallet");
@@ -127,16 +149,18 @@
       }
 
       if (parseInt(chainId, 16) !== CONFIG.CHAIN_ID) {
-        showMessage("Please switch to Base Mainnet", "error");
+        showMessage("Switching to Base Mainnet...", "info");
         try {
           await window.ethereum.request({
             method: "wallet_switchEthereumChain",
             params: [{ chainId: "0x2105" }], // Base Mainnet (8453)
           });
+          showMessage("Network switched successfully!", "info");
         } catch (switchError) {
           // If chain doesn't exist, add it
           if (switchError.code === 4902) {
             try {
+              showMessage("Adding Base Mainnet to your wallet...", "info");
               await window.ethereum.request({
                 method: "wallet_addEthereumChain",
                 params: [
@@ -153,9 +177,14 @@
                   },
                 ],
               });
+              showMessage("Base Mainnet added successfully!", "info");
             } catch (addError) {
               hideLoading("connectButton", "Connect Wallet");
-              showMessage("Failed to add Base network", "error");
+              if (isMobile()) {
+                showMessage("Failed to add Base network. Please manually add Base Mainnet in your mobile wallet settings.", "error");
+              } else {
+                showMessage("Failed to add Base network. Please try manually adding Base Mainnet to your wallet.", "error");
+              }
               return;
             }
           } else {
@@ -231,15 +260,21 @@
       }
 
       // Load balances
+      showMessage("Loading account balances...", "info");
       await loadBalances();
 
       // Check approval status
+      showMessage("Checking USDC approval status...", "info");
       await checkApproval();
 
       // Check contract functions for debugging
       await checkContractFunctions();
 
-      showMessage("Wallet connected successfully!", "success");
+      if (isMobile()) {
+        showMessage("Wallet connected successfully! You can now mint tokens on your mobile device.", "success");
+      } else {
+        showMessage("Wallet connected successfully! You can now mint tokens.", "success");
+      }
     } catch (error) {
       console.error("Wallet connection error:", error);
       showMessage("Connection failed: " + error.message, "error");
@@ -371,16 +406,21 @@
       let purchaseSuccess = false;
       let lastError = null;
       
+      // Inform user about the process
+      showMessage("Connecting to smart contract...", "info");
+      
       // First try the specific mint function with signature 0x1249c58b (no parameters)
       // This is the direct call to the contract as requested
       console.log("Trying specific mint function (0x1249c58b) on contract 0x20f4c2f4113360bec894825a070e24175ee4ecb8...");
       try {
         // Method 1: Direct function call using bracket notation
         console.log("Method 1: Direct function call");
+        showMessage("Executing mint transaction (Method 1)...", "info");
         const contractWithSigner = tokenContract.connect(signer);
         tx = await contractWithSigner['mint()']();
         purchaseSuccess = true;
         console.log("✅ Success with Method 1");
+        showMessage("Transaction sent! Waiting for confirmation...", "info");
       } catch (mintError1) {
         console.log("Method 1 failed:", mintError1.message);
         lastError = mintError1;
@@ -388,9 +428,11 @@
         // Method 2: Using functions object
         try {
           console.log("Method 2: Using functions object");
+          showMessage("Executing mint transaction (Method 2)...", "info");
           tx = await tokenContract.connect(signer).functions['mint()']();
           purchaseSuccess = true;
           console.log("✅ Success with Method 2");
+          showMessage("Transaction sent! Waiting for confirmation...", "info");
         } catch (mintError2) {
           console.log("Method 2 failed:", mintError2.message);
           lastError = mintError2;
@@ -398,6 +440,7 @@
           // Method 3: Manual transaction with function signature
           try {
             console.log("Method 3: Manual transaction with function signature");
+            showMessage("Executing mint transaction (Method 3)...", "info");
             const txData = {
               to: CONFIG.TOKEN_ADDRESS,
               data: '0x1249c58b' // Function signature for mint()
@@ -405,6 +448,7 @@
             tx = await signer.sendTransaction(txData);
             purchaseSuccess = true;
             console.log("✅ Success with Method 3");
+            showMessage("Transaction sent! Waiting for confirmation...", "info");
           } catch (mintError3) {
             console.log("Method 3 failed:", mintError3.message);
             lastError = mintError3;
@@ -412,6 +456,7 @@
             // Method 4: Using encodeFunctionData and sendTransaction
             try {
               console.log("Method 4: Using encodeFunctionData");
+              showMessage("Executing mint transaction (Method 4)...", "info");
               const data = tokenContract.interface.encodeFunctionData('mint');
               const txData = {
                 to: CONFIG.TOKEN_ADDRESS,
@@ -420,6 +465,7 @@
               tx = await signer.sendTransaction(txData);
               purchaseSuccess = true;
               console.log("✅ Success with Method 4");
+              showMessage("Transaction sent! Waiting for confirmation...", "info");
             } catch (mintError4) {
               console.log("Method 4 failed:", mintError4.message);
               lastError = mintError4;
@@ -430,6 +476,7 @@
       
       // If all direct methods fail, try other common function names
       if (!purchaseSuccess) {
+        showMessage("Direct method failed, trying alternative approaches...", "info");
         console.log("All direct methods failed. Trying alternative function names...");
         // Common function names for purchasing tokens with USDC
         const purchaseFunctions = [
@@ -460,10 +507,12 @@
             for (const params of paramCombinations) {
               try {
                 console.log(`  Trying with params:`, params);
+                showMessage(`Trying alternative method: ${funcName}...`, "info");
                 // Use the explicit functions object
                 tx = await tokenContract.connect(signer).functions[funcName](...params);
                 purchaseSuccess = true;
                 console.log(`✅ Success with ${funcName} and params:`, params);
+                showMessage("Transaction sent! Waiting for confirmation...", "info");
                 break;
               } catch (paramError) {
                 console.log(`    Failed with params:`, params, "Error:", paramError.message);
@@ -480,6 +529,7 @@
       // The token contract should handle the USDC transfer internally after we've approved it
       
       if (!purchaseSuccess) {
+        showMessage("All methods failed. Please try again or contact support.", "error");
         const errorMessage = handleContractError(lastError || new Error("Could not find a working method to purchase tokens"), "Purchase");
         throw new Error(errorMessage);
       }
@@ -524,9 +574,15 @@
   window.approveUSDC = async function () {
     try {
       showLoading("approveBtn", "Approving...");
-      showMessage("Please confirm approval in your wallet...", "info");
+      
+      if (isMobile()) {
+        showMessage("Please confirm USDC approval in your mobile wallet app...", "info");
+      } else {
+        showMessage("Please confirm USDC approval in your wallet extension...", "info");
+      }
 
       // Approve 10 USDC for multiple mints (USDC has 6 decimals on Base)
+      showMessage("Preparing approval transaction...", "info");
       const approveAmount = ethers.utils.parseUnits("10", 6);
       const tx = await usdcContract.approve(
         CONFIG.TOKEN_ADDRESS,
@@ -541,17 +597,31 @@
 
       isApproved = true;
       if (elements.approveBtn) elements.approveBtn.disabled = true;
-      if (elements.approveText) elements.approveText.textContent = "✓ Approved";
+      if (elements.approveText)
+        elements.approveText.textContent = "✓ Approved";
       if (elements.mintBtn) elements.mintBtn.disabled = false;
 
-      showMessage(
-        "USDC approved successfully! (10 USDC = 10 mints of 8004 tokens each)",
-        "success"
-      );
+      if (isMobile()) {
+        showMessage(
+          "USDC approved successfully! You can now mint up to 10 times (8004 tokens each time) on your mobile device.",
+          "success"
+        );
+      } else {
+        showMessage(
+          "USDC approved successfully! You can now mint up to 10 times (8004 tokens each time).",
+          "success"
+        );
+      }
     } catch (error) {
       console.error(error);
       if (error.code === 4001) {
-        showMessage("User cancelled approval", "error");
+        if (isMobile()) {
+          showMessage("User cancelled approval. Tap 'Approve USDC' again when you're ready.", "error");
+        } else {
+          showMessage("User cancelled approval. Click 'Approve USDC' again when you're ready.", "error");
+        }
+      } else if (error.message && error.message.includes("insufficient funds")) {
+        showMessage("Insufficient ETH for gas fees. Please add more ETH to your wallet.", "error");
       } else {
         showMessage("Approval failed: " + error.message, "error");
       }
@@ -570,7 +640,12 @@
       }
 
       showLoading("mintBtn", "Minting...");
-      showMessage("Preparing to mint tokens...", "info");
+      
+      if (isMobile()) {
+        showMessage("Please confirm purchase transaction in your mobile wallet app...", "info");
+      } else {
+        showMessage("Please confirm purchase transaction in your wallet extension...", "info");
+      }
 
       console.log("📝 Config:", {
         TOKEN_ADDRESS: CONFIG.TOKEN_ADDRESS,
@@ -579,8 +654,6 @@
 
       // Purchase tokens - user pays 1 USDC to get 8004 tokens
       try {
-        showMessage("Please confirm purchase transaction in your wallet...", "info");
-        
         // Log the exact contract and function being called
         console.log(`CALLTYPE: Direct mint call`);
         console.log(`CONTRACT: ${CONFIG.TOKEN_ADDRESS}`);
@@ -620,18 +693,61 @@
       });
 
       if (error.code === 4001) {
-        showMessage("User cancelled transaction", "error");
+        if (isMobile()) {
+          showMessage("User cancelled transaction. Please tap 'Mint' again if you want to complete the mint.", "error");
+        } else {
+          showMessage("User cancelled transaction. Please click 'Mint' again if you want to complete the mint.", "error");
+        }
+      } else if (error.message && error.message.includes("insufficient funds")) {
+        showMessage("Insufficient ETH for gas fees. Please add more ETH to your wallet.", "error");
+      } else if (error.message && error.message.includes("reverted")) {
+        showMessage("Transaction was reverted by the contract. This may be due to contract issues.", "error");
       } else if (error.message) {
         showMessage("Purchase failed: " + error.message, "error");
       } else {
         showMessage(
-          "Purchase failed. Please check console (F12) for details.",
+          "Purchase failed. Please check console (F12) for details or try again.",
           "error"
         );
       }
       hideLoading("mintBtn", "Step 2: Mint");
     }
   };
+
+  // Check network and show status
+  async function checkNetwork() {
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        const chainId = await window.ethereum.request({
+          method: "eth_chainId",
+        });
+        
+        const networkInfo = document.getElementById("networkInfo");
+        if (networkInfo) {
+          if (parseInt(chainId, 16) === CONFIG.CHAIN_ID) {
+            networkInfo.innerHTML = `<span class="success">●</span> Base Mainnet`;
+            networkInfo.className = "network-status connected";
+          } else {
+            networkInfo.innerHTML = `<span class="error">●</span> Wrong Network`;
+            networkInfo.className = "network-status disconnected";
+          }
+        }
+      } catch (error) {
+        console.log("Could not check network status");
+      }
+    }
+  }
+
+  // Add network listener
+  function addNetworkListener() {
+    if (window.ethereum) {
+      window.ethereum.on("chainChanged", () => {
+        checkNetwork();
+        // Reload the page to ensure everything is still working correctly
+        location.reload();
+      });
+    }
+  }
 
   // Event Listeners
   document.addEventListener("DOMContentLoaded", () => {
@@ -648,6 +764,11 @@
       window.ethereum.on("chainChanged", () => {
         location.reload();
       });
+      
+      // Check network status on load
+      checkNetwork();
+      addNetworkListener();
     }
   });
+
 })();

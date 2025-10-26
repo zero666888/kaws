@@ -850,6 +850,59 @@ body::after {
   color: var(--text-secondary);
 }
 
+/* Header Container */
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  flex-wrap: wrap;
+}
+
+.network-info {
+  flex: 1;
+  margin-right: 15px;
+  min-width: 150px;
+}
+
+.wallet-connect-container {
+  flex-shrink: 0;
+}
+
+/* Network Status */
+.network-status {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.network-status.connected {
+  color: var(--success);
+  border-color: var(--success);
+}
+
+.network-status.disconnected {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.network-status span {
+  margin-right: 6px;
+}
+
+/* Contract Address */
+.contract-address {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  word-break: break-all;
+}
+
 /* Loading Spinner */
 .loading {
   display: inline-block;
@@ -864,6 +917,42 @@ body::after {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Touch-friendly buttons for mobile */
+@media (hover: none) and (pointer: coarse) {
+  .connect-btn,
+  .action-btn,
+  .copy-btn {
+    min-height: 44px; /* Minimum touch target size */
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  
+  .info-card,
+  .mint-info-box {
+    padding: 16px 12px;
+  }
+  
+  .action-buttons {
+    gap: 15px;
+  }
+}
+
+/* Improved focus states for accessibility */
+.connect-btn:focus,
+.action-btn:focus,
+.copy-btn:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Smooth transitions for all interactive elements */
+.connect-btn,
+.action-btn,
+.copy-btn,
+.info-card {
+  transition: all 0.2s ease;
 }
 
 /* 响应式设计 */
@@ -888,5 +977,233 @@ body::after {
   .trading-info {
     grid-template-columns: 1fr;
   }
+  
+  /* Mobile-specific adjustments */
+  .header-container {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 15px;
+    gap: 10px;
+  }
+  
+  .network-info {
+    margin-right: 0;
+    min-width: auto;
+    text-align: center;
+  }
+  
+  .wallet-connect-container {
+    width: 100%;
+  }
+  
+  .connect-btn {
+    width: 100%;
+  }
+  
+  .wallet-info-section {
+    gap: 10px;
+  }
+  
+  .info-card {
+    padding: 12px;
+  }
+  
+  .info-label {
+    font-size: 11px;
+  }
+  
+  .info-value {
+    font-size: 13px;
+  }
+  
+  .mint-info-box {
+    padding: 15px;
+  }
+  
+  .info-row {
+    margin-bottom: 10px;
+  }
+  
+  .action-buttons {
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .action-btn {
+    height: 50px;
+    font-size: 15px;
+  }
+  
+  .trading-info {
+    padding-top: 20px;
+    gap: 12px;
+  }
+  
+  .info-item {
+    padding: 10px;
+  }
+  
+  .info-label {
+    font-size: 11px;
+  }
+  
+  .info-value {
+    font-size: 12px;
+  }
+  
+  .contract-address {
+    font-size: 10px;
+  }
+  
+  /* Improved mobile touch targets */
+  .action-btn,
+  .connect-btn {
+    min-height: 48px;
+  }
+  
+  /* Better spacing for mobile forms */
+  .trading-card {
+    margin: 10px;
+  }
+  
+  /* Mobile-friendly message display */
+  #message {
+    margin: 15px 0;
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  
+  /* Ensure links are tappable */
+  a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
 }
 
+@media (max-width: 480px) {
+  .container {
+    padding: 0 15px;
+  }
+  
+  .trading-card {
+    padding: 20px 15px;
+    margin: 5px;
+  }
+  
+  .info-card {
+    padding: 10px;
+  }
+  
+  .info-label {
+    font-size: 10px;
+  }
+  
+  .info-value {
+    font-size: 12px;
+  }
+  
+  .mint-info-box {
+    padding: 12px;
+  }
+  
+  .info-row {
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  
+  .action-btn {
+    height: 48px;
+    font-size: 14px;
+  }
+  
+  .network-status {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+  
+  /* Compact layout for very small screens */
+  .main-content {
+    padding: 20px 0;
+  }
+  
+  .trading-section {
+    padding: 0 10px;
+  }
+  
+  /* Ensure contract address is readable on small screens */
+  .contract-address {
+    font-size: 9px;
+    line-height: 1.3;
+  }
+}
+
+/* Large screen optimization */
+@media (min-width: 1200px) {
+  .container {
+    max-width: 800px;
+  }
+  
+  .trading-card {
+    padding: 40px;
+  }
+  
+  .wallet-info-section {
+    margin-bottom: 30px;
+  }
+  
+  .mint-info-box {
+    padding: 25px;
+    margin-bottom: 30px;
+  }
+  
+  .action-buttons {
+    margin-bottom: 30px;
+  }
+  
+  .trading-info {
+    padding-top: 30px;
+  }
+  
+  /* Enhanced desktop experience */
+  .trading-card {
+    box-shadow: 0 12px 40px var(--shadow);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .trading-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 50px rgba(0, 82, 255, 0.25);
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border: #000000;
+    --text: #000000;
+    --text-secondary: #333333;
+  }
+  
+  .network-status {
+    border-width: 2px;
+  }
+  
+  .action-btn {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .trading-card:hover {
+    transform: none;
+  }
+}
