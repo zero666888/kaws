@@ -147,6 +147,10 @@
           "function balanceOf(address) view returns (uint256)",
           "function name() view returns (string)",
           "function symbol() view returns (string)",
+          // Multiple possible mint function signatures to cover different implementations
+          "function mint(address to, uint256 amount) external returns (bool)",
+          "function mint() external returns (bool)",
+          "function mint(uint256 amount) external returns (bool)"
         ],
         provider
       );
@@ -283,16 +287,83 @@
 
       console.log("📝 Config:", {
         TOKEN_ADDRESS: CONFIG.TOKEN_ADDRESS,
+        userAddress: userAddress
       });
 
       // Direct minting without relayer
       try {
         showMessage("Please confirm mint transaction in your wallet...", "info");
         
-        // Call mint function directly on the token contract
-        const tx = await tokenContract.connect(signer).mint({
-          gasLimit: 300000
+        // Based on the UI, it seems 1 USDC = 8004 tokens
+        const amountOut = ethers.utils.parseEther("8004"); // 8004 tokens with 18 decimals
+        const amountIn = ethers.utils.parseUnits("1", 6);  // 1 USDC with 6 decimals
+        
+        console.log("Mint parameters:", { 
+          to: userAddress, 
+          amountOut: amountOut.toString(),
+          amountIn: amountIn.toString()
         });
+        
+        // Try different approaches for minting
+        let tx;
+        let mintSuccess = false;
+        
+        // Approach 1: mint(address, amount)
+        if (!mintSuccess) {
+          try {
+            console.log("Trying mint(address, amount)...");
+            tx = await tokenContract.connect(signer).mint(userAddress, amountOut, {
+              gasLimit: 500000
+            });
+            mintSuccess = true;
+          } catch (error) {
+            console.log("mint(address, amount) failed:", error.message);
+          }
+        }
+        
+        // Approach 2: mint(amount)
+        if (!mintSuccess) {
+          try {
+            console.log("Trying mint(amount)...");
+            tx = await tokenContract.connect(signer).mint(amountOut, {
+              gasLimit: 500000
+            });
+            mintSuccess = true;
+          } catch (error) {
+            console.log("mint(amount) failed:", error.message);
+          }
+        }
+        
+        // Approach 3: mint() - simplest form
+        if (!mintSuccess) {
+          try {
+            console.log("Trying mint()...");
+            tx = await tokenContract.connect(signer).mint({
+              gasLimit: 500000
+            });
+            mintSuccess = true;
+          } catch (error) {
+            console.log("mint() failed:", error.message);
+          }
+        }
+        
+        // Approach 4: mint() with value
+        if (!mintSuccess) {
+          try {
+            console.log("Trying mint() with value...");
+            tx = await tokenContract.connect(signer).mint({
+              gasLimit: 500000,
+              value: 0
+            });
+            mintSuccess = true;
+          } catch (error) {
+            console.log("mint() with value failed:", error.message);
+          }
+        }
+        
+        if (!mintSuccess) {
+          throw new Error("All mint approaches failed. Check console for details.");
+        }
         
         showMessage("Mint transaction submitted, waiting for confirmation...", "info");
         const receipt = await tx.wait();

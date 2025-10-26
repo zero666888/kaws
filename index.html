@@ -17,8 +17,8 @@
       function copyContract() {
         const address = "0x20f4c2f4113360bec894825a070e24175ee4ecb8";
         navigator.clipboard
-          。writeText(address)
-          。then(() => {
+          .writeText(address)
+          .then(() => {
             const btn = event.target;
             const originalText = btn.textContent;
             btn.textContent = "✓";
@@ -28,7 +28,7 @@
               btn.style.color = "";
             }, 2000);
           })
-          。catch((err) => {
+          .catch((err) => {
             console.error("Failed to copy:", err);
           });
       }
@@ -95,7 +95,7 @@
                   onclick="mintTokens()"
                   disabled
                 >
-                  <span id="mintText">Step 2: Mint </span>
+                  <span id="mintText">Step 2: Mint</span>
                 </button>
               </div>
             </div>
