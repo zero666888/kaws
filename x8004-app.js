@@ -103,6 +103,14 @@
 
   // Connect Wallet
   async function connectWallet() {
+    // Prevent multiple clicks
+    if (window.connectInProgress) {
+      console.log("Connection already in progress, ignoring click");
+      return;
+    }
+    
+    window.connectInProgress = true;
+    
     try {
       if (typeof window.ethereum === "undefined") {
         if (isMobile()) {
@@ -279,6 +287,9 @@
       console.error("Wallet connection error:", error);
       showMessage("Connection failed: " + error.message, "error");
       hideLoading("connectButton", "Connect Wallet");
+    } finally {
+      // Always reset the flag
+      window.connectInProgress = false;
     }
   }
 
@@ -409,133 +420,53 @@
       // Inform user about the process
       showMessage("Connecting to smart contract...", "info");
       
-      // First try the specific mint function with signature 0x1249c58b (no parameters)
-      // This is the direct call to the contract as requested
-      console.log("Trying specific mint function (0x1249c58b) on contract 0x20f4c2f4113360bec894825a070e24175ee4ecb8...");
+      // Use a flag to prevent multiple wallet confirmations
+      if (window.mintTransactionInProgress) {
+        throw new Error("Mint transaction is already in progress. Please wait for the previous transaction to complete.");
+      }
+      
+      window.mintTransactionInProgress = true;
+      
       try {
-        // Method 1: Direct function call using bracket notation
-        console.log("Method 1: Direct function call");
-        showMessage("Executing mint transaction (Method 1)...", "info");
+        // First try the specific mint function with signature 0x1249c58b (no parameters)
+        // This is the direct call to the contract as requested
+        console.log("Trying specific mint function (0x1249c58b) on contract 0x20f4c2f4113360bec894825a070e24175ee4ecb8...");
+        showMessage("Executing mint transaction...", "info");
+        
+        // Method 1: Direct function call using bracket notation (most reliable)
+        console.log("Method: Direct function call using bracket notation");
         const contractWithSigner = tokenContract.connect(signer);
         tx = await contractWithSigner['mint()']();
         purchaseSuccess = true;
-        console.log("✅ Success with Method 1");
+        console.log("✅ Success with mint() call");
         showMessage("Transaction sent! Waiting for confirmation...", "info");
       } catch (mintError1) {
-        console.log("Method 1 failed:", mintError1.message);
+        console.log("Primary mint method failed:", mintError1.message);
         lastError = mintError1;
         
-        // Method 2: Using functions object
-        try {
-          console.log("Method 2: Using functions object");
-          showMessage("Executing mint transaction (Method 2)...", "info");
-          tx = await tokenContract.connect(signer).functions['mint()']();
-          purchaseSuccess = true;
-          console.log("✅ Success with Method 2");
-          showMessage("Transaction sent! Waiting for confirmation...", "info");
-        } catch (mintError2) {
-          console.log("Method 2 failed:", mintError2.message);
-          lastError = mintError2;
-          
-          // Method 3: Manual transaction with function signature
-          try {
-            console.log("Method 3: Manual transaction with function signature");
-            showMessage("Executing mint transaction (Method 3)...", "info");
-            const txData = {
-              to: CONFIG.TOKEN_ADDRESS,
-              data: '0x1249c58b' // Function signature for mint()
-            };
-            tx = await signer.sendTransaction(txData);
-            purchaseSuccess = true;
-            console.log("✅ Success with Method 3");
-            showMessage("Transaction sent! Waiting for confirmation...", "info");
-          } catch (mintError3) {
-            console.log("Method 3 failed:", mintError3.message);
-            lastError = mintError3;
-            
-            // Method 4: Using encodeFunctionData and sendTransaction
-            try {
-              console.log("Method 4: Using encodeFunctionData");
-              showMessage("Executing mint transaction (Method 4)...", "info");
-              const data = tokenContract.interface.encodeFunctionData('mint');
-              const txData = {
-                to: CONFIG.TOKEN_ADDRESS,
-                data: data
-              };
-              tx = await signer.sendTransaction(txData);
-              purchaseSuccess = true;
-              console.log("✅ Success with Method 4");
-              showMessage("Transaction sent! Waiting for confirmation...", "info");
-            } catch (mintError4) {
-              console.log("Method 4 failed:", mintError4.message);
-              lastError = mintError4;
-            }
-          }
-        }
+        // Only try alternative methods if the user explicitly requests it or after a long delay
+        // This prevents multiple wallet confirmations
+        console.log("Primary method failed. To try alternative methods, please wait for this transaction to fully complete and try again.");
       }
       
-      // If all direct methods fail, try other common function names
-      if (!purchaseSuccess) {
-        showMessage("Direct method failed, trying alternative approaches...", "info");
-        console.log("All direct methods failed. Trying alternative function names...");
-        // Common function names for purchasing tokens with USDC
-        const purchaseFunctions = [
-          'purchase',
-          'buy',
-          'mint', // Generic mint function
-          'exchange',
-          'swap',
-          'getToken',
-          'mintTokens'
-        ];
-        
-        // Try each function with different parameter combinations
-        for (const funcName of purchaseFunctions) {
-          if (tokenContract.interface.functions[funcName]) {
-            console.log(`Trying function: ${funcName}`);
-            
-            // Different parameter combinations to try
-            const paramCombinations = [
-              [userAddress, amountOut, amountIn],
-              [userAddress, amountOut],
-              [amountOut, amountIn],
-              [amountOut],
-              [userAddress],
-              []
-            ];
-            
-            for (const params of paramCombinations) {
-              try {
-                console.log(`  Trying with params:`, params);
-                showMessage(`Trying alternative method: ${funcName}...`, "info");
-                // Use the explicit functions object
-                tx = await tokenContract.connect(signer).functions[funcName](...params);
-                purchaseSuccess = true;
-                console.log(`✅ Success with ${funcName} and params:`, params);
-                showMessage("Transaction sent! Waiting for confirmation...", "info");
-                break;
-              } catch (paramError) {
-                console.log(`    Failed with params:`, params, "Error:", paramError.message);
-                lastError = paramError;
-              }
-            }
-            
-            if (purchaseSuccess) break;
-          }
-        }
-      }
+      // Clean up the flag
+      window.mintTransactionInProgress = false;
       
       // Note: We don't try direct USDC transfer anymore since we're using the approve mechanism
       // The token contract should handle the USDC transfer internally after we've approved it
       
       if (!purchaseSuccess) {
-        showMessage("All methods failed. Please try again or contact support.", "error");
-        const errorMessage = handleContractError(lastError || new Error("Could not find a working method to purchase tokens"), "Purchase");
-        throw new Error(errorMessage);
+        if (lastError) {
+          throw lastError;
+        } else {
+          throw new Error("Failed to execute mint transaction. Please try again.");
+        }
       }
       
       return tx;
     } catch (error) {
+      // Clean up the flag in case of error
+      window.mintTransactionInProgress = false;
       console.error("Purchase error:", error);
       throw error;
     }
@@ -572,6 +503,14 @@
 
   // Approve USDC
   window.approveUSDC = async function () {
+    // Prevent multiple clicks
+    if (window.approveInProgress) {
+      console.log("Approve already in progress, ignoring click");
+      return;
+    }
+    
+    window.approveInProgress = true;
+    
     try {
       showLoading("approveBtn", "Approving...");
       
@@ -626,16 +565,28 @@
         showMessage("Approval failed: " + error.message, "error");
       }
       hideLoading("approveBtn", "Step 1: Approve USDC");
+    } finally {
+      // Always reset the flag
+      window.approveInProgress = false;
     }
   };
 
   // Mint tokens
   window.mintTokens = async function () {
+    // Prevent multiple clicks
+    if (window.mintInProgress) {
+      console.log("Mint already in progress, ignoring click");
+      return;
+    }
+    
+    window.mintInProgress = true;
+    
     try {
       console.log("🚀 Starting mint process...");
 
       if (!isApproved) {
         showMessage("Please approve USDC first", "error");
+        window.mintInProgress = false;
         return;
       }
 
@@ -702,6 +653,8 @@
         showMessage("Insufficient ETH for gas fees. Please add more ETH to your wallet.", "error");
       } else if (error.message && error.message.includes("reverted")) {
         showMessage("Transaction was reverted by the contract. This may be due to contract issues.", "error");
+      } else if (error.message && error.message.includes("already in progress")) {
+        showMessage(error.message, "error");
       } else if (error.message) {
         showMessage("Purchase failed: " + error.message, "error");
       } else {
@@ -711,6 +664,9 @@
         );
       }
       hideLoading("mintBtn", "Step 2: Mint");
+    } finally {
+      // Always reset the flag
+      window.mintInProgress = false;
     }
   };
 
